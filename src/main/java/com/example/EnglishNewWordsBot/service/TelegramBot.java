@@ -17,10 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.sql.*;
 import java.util.*;
 
 @Component
@@ -29,113 +26,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private EnglishWordRepository englishWordRepository;
     @Autowired
-    private ModuleOneRepository moduleOneRepository;
-    @Autowired
-    private ModuleTwoRepository moduleTwoRepository;
-    @Autowired
-    private ModuleThreeRepository moduleThreeRepository;
-    @Autowired
-    private ModuleFourRepository moduleFourRepository;
-    @Autowired
-    private ModuleFiveRepository moduleFiveRepository;
-    @Autowired
-    private ModuleSixRepository moduleSixRepository;
-    @Autowired
-    private ModuleSevenRepository moduleSevenRepository;
-    @Autowired
-    private ModuleEightRepository moduleEightRepository;
-    private final Long ALL_COUNT = 319L;
-    private final Long MODULE_ONE_COUNT = 184L;
-    private final Long MODULE_TWO_COUNT = 134L;
-    private final Long MODULE_THREE_COUNT = 175L;
-    private final Long MODULE_FOUR_COUNT = 230L;
-    private final Long MODULE_FIVE_COUNT = 153L;
-    private final Long MODULE_SIX_COUNT = 133L;
-    private final Long MODULE_SEVEN_COUNT = 111L;
-    private final Long MODULE_EIGHT_COUNT = 175L;
-    final BotConfig CONFIG;
-    private Long random;
-    private String tableNow;
-    private Long beginNow;
-    private Long endNow;
-    private String moduleNow;
-    private String letterNow = "";
-    private static final List<List<HashMap<String, Long[]>>> LIST_OF_MODULES_LETTERS = new ArrayList<>();
+    private UserRepository userRepository;
+    private long random;
+    private long maxRandom;
+    private ResultSet resultSet;
+    private final BotConfig CONFIG;
+    private final Connection CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/tg-bot", "root", "az04_super");
 
-    static {
-        List<HashMap<String, Long[]>> listModule1 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 61L})),
-                new HashMap<>(Map.of("B", new Long[]{62L, 93L})),
-                new HashMap<>(Map.of("C", new Long[]{94L, 113L})),
-                new HashMap<>(Map.of("D", new Long[]{114L, 141L})),
-                new HashMap<>(Map.of("E", new Long[]{142L, 184L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule2 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 46L})),
-                new HashMap<>(Map.of("B", new Long[]{47L, 69L})),
-                new HashMap<>(Map.of("C", new Long[]{70L, 82L})),
-                new HashMap<>(Map.of("D", new Long[]{83L, 127L})),
-                new HashMap<>(Map.of("E", new Long[]{128L, 134L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule3 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 59L})),
-                new HashMap<>(Map.of("B", new Long[]{60L, 83L})),
-                new HashMap<>(Map.of("C", new Long[]{84L, 99L})),
-                new HashMap<>(Map.of("D", new Long[]{100L, 141L})),
-                new HashMap<>(Map.of("E", new Long[]{142L, 175L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule4 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 64L})),
-                new HashMap<>(Map.of("B", new Long[]{65L, 102L})),
-                new HashMap<>(Map.of("C", new Long[]{103L, 130L})),
-                new HashMap<>(Map.of("D", new Long[]{131L, 166L})),
-                new HashMap<>(Map.of("E", new Long[]{167L, 216L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule5 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 46L})),
-                new HashMap<>(Map.of("B", new Long[]{47L, 66L})),
-                new HashMap<>(Map.of("C", new Long[]{67L, 72L})),
-                new HashMap<>(Map.of("D", new Long[]{73L, 126L})),
-                new HashMap<>(Map.of("E", new Long[]{127L, 153L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule6 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 38L})),
-                new HashMap<>(Map.of("B", new Long[]{39L, 72L})),
-                new HashMap<>(Map.of("C", new Long[]{73L, 77L})),
-                new HashMap<>(Map.of("D", new Long[]{78L, 120L})),
-                new HashMap<>(Map.of("E", new Long[]{121L, 133L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule7 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 24L})),
-                new HashMap<>(Map.of("B", new Long[]{25L, 50L})),
-                new HashMap<>(Map.of("C", new Long[]{51L, 55L})),
-                new HashMap<>(Map.of("D", new Long[]{56L, 85L})),
-                new HashMap<>(Map.of("E", new Long[]{86L, 111L}))
-        ));
-
-        List<HashMap<String, Long[]>> listModule8 = new ArrayList<>(Arrays.asList(
-                new HashMap<>(Map.of("A", new Long[]{1L, 61L})),
-                new HashMap<>(Map.of("B", new Long[]{62L, 83L})),
-                new HashMap<>(Map.of("C", new Long[]{84L, 90L})),
-                new HashMap<>(Map.of("D", new Long[]{91L, 150L})),
-                new HashMap<>(Map.of("E", new Long[]{151L, 175L}))
-        ));
-
-        LIST_OF_MODULES_LETTERS.add(listModule1);
-        LIST_OF_MODULES_LETTERS.add(listModule2);
-        LIST_OF_MODULES_LETTERS.add(listModule3);
-        LIST_OF_MODULES_LETTERS.add(listModule4);
-        LIST_OF_MODULES_LETTERS.add(listModule5);
-        LIST_OF_MODULES_LETTERS.add(listModule6);
-        LIST_OF_MODULES_LETTERS.add(listModule7);
-        LIST_OF_MODULES_LETTERS.add(listModule8);
-    }
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -144,21 +41,32 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
+            User user = new User();
+            user.setChatId(chatId);
+            user.setModuleNow(0L);
+            user.setLetterNow("");
+            userRepository.save(user);
+
             switch (messageText) {
                 case "/start" -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 case "/learn" -> learnCommandReceived(chatId);
                 default -> sendMessage(chatId, "I don't understand you");
             }
         } else if (update.hasCallbackQuery()) {
-            callbackData(update);
+            try {
+                callbackData(update);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    private void callbackData(Update update) {
+    private void callbackData(Update update) throws SQLException {
 
         String callbackData = update.getCallbackQuery().getData();
         long messageId = update.getCallbackQuery().getMessage().getMessageId();
         long chatId = update.getCallbackQuery().getMessage().getChatId();
+        User user = userRepository.findByChatId(chatId);
 
         EditMessageText message = new EditMessageText();
         String text = "";
@@ -181,102 +89,36 @@ public class TelegramBot extends TelegramLongPollingBot {
             case "stop", "next", "all", "module1", "module2", "module3", "module4", "module5", "module6", "module7", "module8", "module1Letters", "module2Letters", "module3Letters", "module4Letters", "module5Letters", "module6Letters", "module7Letters", "module8Letters"  -> {
 
                 switch (callbackData){
-                    case "stop" -> sendMessage(chatId, "Чтобы начать заново, используйте команду - /learn");
-
-                    case "next" -> sendMessageAndAnswers(chatId, tableNow, beginNow, endNow);
-
-                    case "all" -> {
-                        moduleNow = null;
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, ALL_COUNT);
+                    case "stop" -> {
+                        user.setModuleNow(0L);
+                        user.setLetterNow("");
+                        userRepository.save(user);
+                        sendMessage(chatId, "Чтобы начать заново, используйте команду - /learn");
                     }
 
-                    case "module1" -> {
-                        moduleNow = "Module 1";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_ONE_COUNT);
+                    case "next", "all", "module1", "module2", "module3", "module4", "module5", "module6", "module7", "module8" -> {
+
+                        if (callbackData.equals("next"))
+                            random = getRandomNumber(maxRandom);
+
+                        else {
+                            int thing = callbackData.equals("all") ? 3 : 2;
+                            resultSet = getResultSet(user, thing);
+                        }
+
+                        resultSet.absolute((int) random);
+                        user.setModuleNow(resultSet.getLong("module"));
+                        user.setLetterNow(resultSet.getString("letter"));
+                        userRepository.save(user);
+
+                        sendMessageAndAnswers(chatId);
                     }
 
-                    case "module2" -> {
-                        moduleNow = "Module 2";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_TWO_COUNT);
-                    }
 
-                    case "module3" -> {
-                        moduleNow = "Module 3";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_THREE_COUNT);
-                    }
-
-                    case "module4" -> {
-                        moduleNow = "Module 4";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_FOUR_COUNT);
-                    }
-
-                    case "module5" -> {
-                        moduleNow = "Module 5";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_FIVE_COUNT);
-                    }
-
-                    case "module6" -> {
-                        moduleNow = "Module 6";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_SIX_COUNT);
-                    }
-
-                    case "module7" -> {
-                        moduleNow = "Module 7";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_SEVEN_COUNT);
-                    }
-
-                    case "module8" -> {
-                        moduleNow = "Module 8";
-                        letterNow = "";
-                        sendMessageAndAnswers(chatId, callbackData, 1L, MODULE_EIGHT_COUNT);
-                    }
-
-                    case "module1Letters" -> {
-                        moduleLettersCallbackData(chatId, "module1");
-                        moduleNow = "Module 1";
-                    }
-
-                    case "module2Letters" -> {
-                        moduleLettersCallbackData(chatId, "module2");
-                        moduleNow = "Module 2";
-                    }
-
-                    case "module3Letters" -> {
-                        moduleLettersCallbackData(chatId, "module3");
-                        moduleNow = "Module 3";
-                    }
-
-                    case "module4Letters" -> {
-                        moduleLettersCallbackData(chatId, "module4");
-                        moduleNow = "Module 4";
-                    }
-
-                    case "module5Letters" -> {
-                        moduleLettersCallbackData(chatId, "module5");
-                        moduleNow = "Module 5";
-                    }
-
-                    case "module6Letters" -> {
-                        moduleLettersCallbackData(chatId, "module6");
-                        moduleNow = "Module 6";
-                    }
-
-                    case "module7Letters" -> {
-                        moduleLettersCallbackData(chatId, "module7");
-                        moduleNow = "Module 7";
-                    }
-
-                    case "module8Letters" -> {
-                        moduleLettersCallbackData(chatId, "module8");
-                        moduleNow = "Module 8";
+                    case "module1Letters", "module2Letters", "module3Letters", "module4Letters", "module5Letters", "module6Letters", "module7Letters", "module8Letters" -> {
+                        user.setModuleNow(Long.parseLong(callbackData.replaceAll("\\D+", "")));
+                        userRepository.save(user);
+                        moduleLettersCallbackData(chatId, Long.parseLong(callbackData.replaceAll("\\D+", "")));
                     }
                 }
 
@@ -284,9 +126,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
 
             case "A", "B", "C", "D", "E" -> {
-                letterNow = callbackData;
-                Long[] beginAndEnd = getBeginAndEnd(callbackData);
-                sendMessageAndAnswers(chatId, tableNow, beginAndEnd[0], beginAndEnd[1]);
+                user.setLetterNow(callbackData);
+                userRepository.save(user);
+                resultSet = getResultSet(user, 1);
+                sendMessageAndAnswers(chatId);
                 text = update.getCallbackQuery().getMessage().getText();
             }
 
@@ -299,30 +142,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private Long[] getBeginAndEnd(String letter) {
-        int index;
-        switch (letter) {
-            case "B" -> index = 1;
-            case "C" -> index = 2;
-            case "D" -> index = 3;
-            case "E" -> index = 4;
-            default -> index = 0;
-        }
-        Long[] result = {};
-        switch (tableNow) {
-            case "module1" -> result = LIST_OF_MODULES_LETTERS.get(0).get(index).get(letter);
-            case "module2" -> result = LIST_OF_MODULES_LETTERS.get(1).get(index).get(letter);
-            case "module3" -> result = LIST_OF_MODULES_LETTERS.get(2).get(index).get(letter);
-            case "module4" -> result = LIST_OF_MODULES_LETTERS.get(3).get(index).get(letter);
-            case "module5" -> result = LIST_OF_MODULES_LETTERS.get(4).get(index).get(letter);
-            case "module6" -> result = LIST_OF_MODULES_LETTERS.get(5).get(index).get(letter);
-            case "module7" -> result = LIST_OF_MODULES_LETTERS.get(6).get(index).get(letter);
-            case "module8" -> result = LIST_OF_MODULES_LETTERS.get(7).get(index).get(letter);
-        }
-
-        return result;
-    }
-
     private void startCommandReceived(long chatId, String name) {
 
         String answer = "hi " + name;
@@ -330,16 +149,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, answer);
     }
 
-    private void moduleLettersCallbackData(long chatId, String table) {
+    private void moduleLettersCallbackData(long chatId, long module) {
 
-        tableNow = table;
+        User user = userRepository.findByChatId(chatId);
+        user.setModuleNow(module);
+        userRepository.save(user);
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText("Выберите раздел модуля");
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(Collections.singletonList(getInlineKeyboardForModule()));
+        markup.setKeyboard(Collections.singletonList(getInlineKeyboardForModule(userRepository.findByChatId(chatId))));
         message.setReplyMarkup(markup);
 
         executeMessage(message);
@@ -358,21 +179,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(message);
     }
 
-    private void sendMessageAndAnswers(long chatId, String table, Long begin, Long end) {
+    private void sendMessageAndAnswers(long chatId) throws SQLException {
 
-        beginNow = begin;
-        endNow = end;
-        tableNow = table;
-        random = generateRandomNumber(end - (begin - 1)) + begin - 1;
+        User user = userRepository.findByChatId(chatId);
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
-        String moduleAndLetter = " (" + moduleNow + (letterNow.equals("") ? "" : " " + letterNow) + ")";
-        message.setText(getEnglish(random) + (moduleNow == null ? "" : moduleAndLetter));
+        long module = user.getModuleNow();
+        String letter = user.getLetterNow();
+        String moduleAndLetter = String.format(" (Module %d, %s)", module, letter);
+        message.setText(getEnglish((int) random) + moduleAndLetter);
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
 
-        markupInline.setKeyboard(getInlineKeyboardForAnswers(getShuffleListOfAnswers(getTranslate(random)), getTranslate(random)));
+        markupInline.setKeyboard(getInlineKeyboardForAnswers(getShuffleListOfAnswers(getTranslate((int) random)), getTranslate((int) random)));
 
         message.setReplyMarkup(markupInline);
 
@@ -388,7 +208,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @Autowired
-    public TelegramBot(BotConfig config) {
+    public TelegramBot(BotConfig config) throws SQLException {
         this.CONFIG = config;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "get a welcome message"));
@@ -400,37 +220,48 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    public String getEnglish(Long random) {
-        switch (tableNow) {
-            case "all" -> {return englishWordRepository.findById(random).get().getEnglishWord();}
-            case "module1" -> {return moduleOneRepository.findById(random).get().getEnglish();}
-            case "module2" -> {return moduleTwoRepository.findById(random).get().getEnglish();}
-            case "module3" -> {return moduleThreeRepository.findById(random).get().getEnglish();}
-            case "module4" -> {return moduleFourRepository.findById(random).get().getEnglish();}
-            case "module5" -> {return moduleFiveRepository.findById(random).get().getEnglish();}
-            case "module6" -> {return moduleSixRepository.findById(random).get().getEnglish();}
-            case "module7" -> {return moduleSevenRepository.findById(random).get().getEnglish();}
-            case "module8" -> {return moduleEightRepository.findById(random).get().getEnglish();}
-            default -> {return null;}
-        }
+    private String getEnglish(long index) throws SQLException {
+
+        resultSet.absolute((int) index);
+        return resultSet.getString("english");
     }
 
-    public String getTranslate(Long random) {
-        switch (tableNow) {
-            case "all" -> {return englishWordRepository.findById(random).get().getTranslate();}
-            case "module1" -> {return moduleOneRepository.findById(random).get().getTranslate();}
-            case "module2" -> {return moduleTwoRepository.findById(random).get().getTranslate();}
-            case "module3" -> {return moduleThreeRepository.findById(random).get().getTranslate();}
-            case "module4" -> {return moduleFourRepository.findById(random).get().getTranslate();}
-            case "module5" -> {return moduleFiveRepository.findById(random).get().getTranslate();}
-            case "module6" -> {return moduleSixRepository.findById(random).get().getTranslate();}
-            case "module7" -> {return moduleSevenRepository.findById(random).get().getTranslate();}
-            case "module8" -> {return moduleEightRepository.findById(random).get().getTranslate();}
-            default -> {return null;}
-        }
+    private String getTranslate(long index) throws SQLException {
+
+        resultSet.absolute((int) index);
+        return resultSet.getString("translate");
     }
 
-    private long generateRandomNumber(Long count) {
+    private ResultSet getResultSet(User user, int thing) throws SQLException {
+
+        Statement statement = CONNECTION.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        String sql;
+
+        switch (thing) {
+
+            case (1) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d AND letter='%s'", user.getModuleNow(), user.getLetterNow());
+
+            case (2) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d", user.getModuleNow());
+
+            default -> sql = "SELECT * FROM english_words_table";
+        }
+
+        ResultSet resultSet = statement.executeQuery(sql);
+        int size;
+        try {
+            resultSet.last();
+            size = resultSet.getRow();
+        }
+        catch(Exception ex) {
+            size = 0;
+        }
+        maxRandom = size;
+        this.random = getRandomNumber(maxRandom);
+
+        return resultSet;
+    }
+
+    private long getRandomNumber(long count) {
         return (int)(Math.random() * count + 1);
     }
 
@@ -455,16 +286,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttons1.add(getButton("1", "module1Letters"));
         buttons1.add(getButton("2", "module2Letters"));
         buttons1.add(getButton("3", "module3Letters"));
-        buttons1.add(getButton("4", "module4Letters"));
 
         List<InlineKeyboardButton> buttons2 = new ArrayList<>();
+        buttons1.add(getButton("4", "module4Letters"));
         buttons2.add(getButton("5", "module5Letters"));
         buttons2.add(getButton("6", "module6Letters"));
-        buttons2.add(getButton("7", "module7Letters"));
-        buttons2.add(getButton("8", "module8Letters"));
 
         List<InlineKeyboardButton> buttons3 = new ArrayList<>();
-        buttons2.add(getButton("All Modules", "all"));
+        buttons2.add(getButton("7", "module7Letters"));
+        buttons2.add(getButton("8", "module8Letters"));
+        buttons2.add(getButton("Все", "all"));
 
         List<List<InlineKeyboardButton>> result = new ArrayList<>();
         result.add(buttons1);
@@ -474,7 +305,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return result;
     }
 
-    private List<InlineKeyboardButton> getInlineKeyboardForModule() {
+    private List<InlineKeyboardButton> getInlineKeyboardForModule(User user) {
         List<InlineKeyboardButton> buttons = new ArrayList<>();
 
         buttons.add(getButton("A", "A"));
@@ -482,7 +313,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttons.add(getButton("C", "C"));
         buttons.add(getButton("D", "D"));
         buttons.add(getButton("E", "E"));
-        buttons.add(getButton("Весь Модуль", tableNow));
+        buttons.add(getButton("Весь Модуль", "module" + user.getModuleNow()));
 
         return buttons;
     }
@@ -494,20 +325,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         return button;
     }
 
-    private List<String> getShuffleListOfAnswers(String correct) {
+    private List<String> getShuffleListOfAnswers(String correct) throws SQLException {
         List<String> list = new ArrayList<>();
 
-        long first = generateRandomNumber(endNow - beginNow) + beginNow, second = generateRandomNumber(endNow - beginNow) + beginNow, third = generateRandomNumber(endNow - beginNow) + beginNow;
-        while (first == random || second == random || third == random || first == third || second == third || first == second) {
-            first = generateRandomNumber(endNow - beginNow) + beginNow;
-            second = generateRandomNumber(endNow - beginNow) + beginNow;
-            third = generateRandomNumber(endNow - beginNow) + beginNow;
+        String first = "", second = "", third = "";
+        while (first.equals(second) || first.equals(third) || first.equals(correct) || second.equals(third) || second.equals(correct) || third.equals(correct)) {
+            first = getTranslate(getRandomNumber(random));
+            second = getTranslate(getRandomNumber(random));
+            third = getTranslate(getRandomNumber(random));
         }
 
         list.add(correct);
-        list.add(getTranslate(first));
-        list.add(getTranslate(second));
-        list.add(getTranslate(third));
+        list.add(first);
+        list.add(second);
+        list.add(third);
 
         Collections.shuffle(list);
 
@@ -519,7 +350,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         for (int i = 0; i < 2; i++) {
             List<InlineKeyboardButton> row = new ArrayList<>();
             var button = new InlineKeyboardButton();
-            button.setText(i == 0 ? "следующий вопрос" : "завершить");
+            button.setText(i == 0 ? "следующее слово" : "завершить");
             button.setCallbackData(button.getText().equals("завершить") ? "stop" : "next");
             row.add(button);
             rowsInline.add(row);
@@ -555,9 +386,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         return CONFIG.getToken();
     }
 
-    private void addToTable() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String file = reader.readLine();
+    /*private void addToTable() throws IOException {
+
+        String file = "D:\\file.txt";
         List<String> english = new ArrayList<>();
         List<String> translate = new ArrayList<>();
 
@@ -575,14 +406,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         for (int i = 0; i < english.size(); i++) {
-            ModuleEight moduleEight = new ModuleEight();
-            moduleEight.setId(MODULE_EIGHT_COUNT + 1L + i);
-            moduleEight.setEnglish(english.get(i));
-            moduleEight.setTranslate(translate.get(i));
-            moduleEight.setLetter("e");
-            moduleEightRepository.save(moduleEight);
+            EnglishWord englishWord = new EnglishWord();
+            englishWord.setId(1270 + 1L + i);
+            englishWord.setEnglish(english.get(i));
+            englishWord.setTranslate(translate.get(i));
+            englishWord.setModule(8L);
+            englishWord.setLetter("E");
+            englishWordRepository.save(englishWord);
         }
-    }
+    }*/
 
 
 

@@ -8,12 +8,11 @@ import javax.persistence.Id;
 
 @Getter
 @Setter
-@Entity(name = "moduleFive")
-public class ModuleFive {
+@Entity(name = "userTable")
+public class User {
 
     @Id
-    private Long id;
-    private String letter;
-    private String english;
-    private String translate;
+    private Long chatId;
+    private Long moduleNow;
+    private String letterNow;
 }

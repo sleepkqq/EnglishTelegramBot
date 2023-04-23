@@ -13,7 +13,9 @@ public class EnglishWord {
 
     @Id
     private Long id;
-    private String englishWord;
+    private String english;
     private String translate;
+    private String letter;
+    private Long module;
 
 }
