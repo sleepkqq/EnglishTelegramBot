@@ -1,8 +1,6 @@
 package com.example.EnglishNewWordsBot.service;
 
 import com.example.EnglishNewWordsBot.config.BotConfig;
-import com.example.EnglishNewWordsBot.models.*;
-import com.example.EnglishNewWordsBot.repositories.*;
 import com.vdurmont.emoji.EmojiParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,12 +21,11 @@ import java.util.*;
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
-    @Autowired
-    private EnglishWordRepository englishWordRepository;
-    @Autowired
-    private UserRepository userRepository;
+
     private long random;
     private long maxRandom;
+    private long moduleNow;
+    private String letterNow;
     private ResultSet resultSet;
     private final BotConfig CONFIG;
     private final Connection CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/tg-bot", "root", "az04_super");
@@ -40,12 +37,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-
-            User user = new User();
-            user.setChatId(chatId);
-            user.setModuleNow(0L);
-            user.setLetterNow("");
-            userRepository.save(user);
 
             switch (messageText) {
                 case "/start" -> startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
@@ -66,21 +57,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         String callbackData = update.getCallbackQuery().getData();
         long messageId = update.getCallbackQuery().getMessage().getMessageId();
         long chatId = update.getCallbackQuery().getMessage().getChatId();
-        User user = userRepository.findByChatId(chatId);
 
         EditMessageText message = new EditMessageText();
         String text = "";
 
         switch (callbackData) {
-            case "correct" -> {
-                text = EmojiParser.parseToUnicode("Правильный ответ :white_check_mark:\n\nВопрос: " + getEnglish(random) + "\n\nОтвет: " + getTranslate(random));
-                InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-                markup.setKeyboard(getInlineKeyboardForNextOrStop());
-                message.setReplyMarkup(markup);
-            }
 
-            case "1", "2", "3", "4" -> {
-                text = EmojiParser.parseToUnicode("Неправильный ответ :x:\n\nВопрос: " + getEnglish(random) + "\n\nПравильный ответ был: " + getTranslate(random));
+            case "correct", "1", "2", "3", "4" -> {
+
+                if (callbackData.equals("correct"))
+                    text = EmojiParser.parseToUnicode(String.format("Правильный ответ :white_check_mark:\n\nВопрос: %s\n\nОтвет: %s", getEnglish(random), getTranslate(random)));
+
+                else
+                    text = EmojiParser.parseToUnicode(String.format("Неправильный ответ :x:\n\nВопрос: %s\n\nПравильный ответ был: %s", getEnglish(random), getTranslate(random)));
+
                 InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
                 markup.setKeyboard(getInlineKeyboardForNextOrStop());
                 message.setReplyMarkup(markup);
@@ -89,12 +79,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             case "stop", "next", "all", "module1", "module2", "module3", "module4", "module5", "module6", "module7", "module8", "module1Letters", "module2Letters", "module3Letters", "module4Letters", "module5Letters", "module6Letters", "module7Letters", "module8Letters"  -> {
 
                 switch (callbackData){
-                    case "stop" -> {
-                        user.setModuleNow(0L);
-                        user.setLetterNow("");
-                        userRepository.save(user);
-                        sendMessage(chatId, "Чтобы начать заново, используйте команду - /learn");
-                    }
+                    case "stop" -> sendMessage(chatId, "Чтобы начать заново, используйте команду - /learn");
 
                     case "next", "all", "module1", "module2", "module3", "module4", "module5", "module6", "module7", "module8" -> {
 
@@ -103,21 +88,19 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                         else {
                             int thing = callbackData.equals("all") ? 3 : 2;
-                            resultSet = getResultSet(user, thing);
+                            resultSet = getResultSet(thing);
                         }
 
                         resultSet.absolute((int) random);
-                        user.setModuleNow(resultSet.getLong("module"));
-                        user.setLetterNow(resultSet.getString("letter"));
-                        userRepository.save(user);
+                        moduleNow = resultSet.getLong("module");
+                        letterNow = resultSet.getString("letter");
 
                         sendMessageAndAnswers(chatId);
                     }
 
 
                     case "module1Letters", "module2Letters", "module3Letters", "module4Letters", "module5Letters", "module6Letters", "module7Letters", "module8Letters" -> {
-                        user.setModuleNow(Long.parseLong(callbackData.replaceAll("\\D+", "")));
-                        userRepository.save(user);
+                        moduleNow = (Long.parseLong(callbackData.replaceAll("\\D+", "")));
                         moduleLettersCallbackData(chatId, Long.parseLong(callbackData.replaceAll("\\D+", "")));
                     }
                 }
@@ -126,9 +109,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
 
             case "A", "B", "C", "D", "E" -> {
-                user.setLetterNow(callbackData);
-                userRepository.save(user);
-                resultSet = getResultSet(user, 1);
+                letterNow = callbackData;
+                resultSet = getResultSet(1);
                 sendMessageAndAnswers(chatId);
                 text = update.getCallbackQuery().getMessage().getText();
             }
@@ -144,23 +126,23 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(long chatId, String name) {
 
-        String answer = "hi " + name;
+        String answer = EmojiParser.parseToUnicode(":wave:Привет, "
+                + name
+                + "! Я помогу тебе подготовиться к словарному диктанту. Чтобы начать подготовку - введи команду /learn");
 
         sendMessage(chatId, answer);
     }
 
     private void moduleLettersCallbackData(long chatId, long module) {
 
-        User user = userRepository.findByChatId(chatId);
-        user.setModuleNow(module);
-        userRepository.save(user);
+        moduleNow = module;
 
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText("Выберите раздел модуля");
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(Collections.singletonList(getInlineKeyboardForModule(userRepository.findByChatId(chatId))));
+        markup.setKeyboard(Collections.singletonList(getInlineKeyboardForModule()));
         message.setReplyMarkup(markup);
 
         executeMessage(message);
@@ -181,13 +163,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void sendMessageAndAnswers(long chatId) throws SQLException {
 
-        User user = userRepository.findByChatId(chatId);
-
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
-        long module = user.getModuleNow();
-        String letter = user.getLetterNow();
-        String moduleAndLetter = String.format(" (Module %d, %s)", module, letter);
+        String moduleAndLetter = String.format(" (Module %d, %s)", moduleNow, letterNow);
         message.setText(getEnglish((int) random) + moduleAndLetter);
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -212,7 +190,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.CONFIG = config;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "get a welcome message"));
-        listOfCommands.add(new BotCommand("/learn", "get a random english word"));
+        listOfCommands.add(new BotCommand("/learn", "start your training"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -232,16 +210,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         return resultSet.getString("translate");
     }
 
-    private ResultSet getResultSet(User user, int thing) throws SQLException {
+    private ResultSet getResultSet(int thing) throws SQLException {
 
         Statement statement = CONNECTION.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
         String sql;
 
         switch (thing) {
 
-            case (1) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d AND letter='%s'", user.getModuleNow(), user.getLetterNow());
+            case (1) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d AND letter='%s'", moduleNow, letterNow);
 
-            case (2) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d", user.getModuleNow());
+            case (2) -> sql = String.format("SELECT * FROM english_words_table WHERE module=%d", moduleNow);
 
             default -> sql = "SELECT * FROM english_words_table";
         }
@@ -288,14 +266,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttons1.add(getButton("3", "module3Letters"));
 
         List<InlineKeyboardButton> buttons2 = new ArrayList<>();
-        buttons1.add(getButton("4", "module4Letters"));
+        buttons2.add(getButton("4", "module4Letters"));
         buttons2.add(getButton("5", "module5Letters"));
         buttons2.add(getButton("6", "module6Letters"));
 
         List<InlineKeyboardButton> buttons3 = new ArrayList<>();
-        buttons2.add(getButton("7", "module7Letters"));
-        buttons2.add(getButton("8", "module8Letters"));
-        buttons2.add(getButton("Все", "all"));
+        buttons3.add(getButton("7", "module7Letters"));
+        buttons3.add(getButton("8", "module8Letters"));
+        buttons3.add(getButton("Все", "all"));
 
         List<List<InlineKeyboardButton>> result = new ArrayList<>();
         result.add(buttons1);
@@ -305,7 +283,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return result;
     }
 
-    private List<InlineKeyboardButton> getInlineKeyboardForModule(User user) {
+    private List<InlineKeyboardButton> getInlineKeyboardForModule() {
         List<InlineKeyboardButton> buttons = new ArrayList<>();
 
         buttons.add(getButton("A", "A"));
@@ -313,7 +291,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         buttons.add(getButton("C", "C"));
         buttons.add(getButton("D", "D"));
         buttons.add(getButton("E", "E"));
-        buttons.add(getButton("Весь Модуль", "module" + user.getModuleNow()));
+        buttons.add(getButton("Весь", "module" + moduleNow));
 
         return buttons;
     }
