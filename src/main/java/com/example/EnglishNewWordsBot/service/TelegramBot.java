@@ -28,7 +28,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String letterNow;
     private ResultSet resultSet;
     private final BotConfig CONFIG;
-    private final Connection CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/tg-bot", "root", "az04_super");
+    private String password = // database password;
+    private final Connection CONNECTION = DriverManager.getConnection("jdbc:mysql://localhost:3306/tg-bot", "root", password);
 
 
     @Override
