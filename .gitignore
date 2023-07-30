@@ -19,6 +19,7 @@ target/
 *.iml
 *.ipr
 *.properties
+application.properties  # Добавленная строка
 
 ### NetBeans ###
 /nbproject/private/
@@ -32,5 +33,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-application.properties
